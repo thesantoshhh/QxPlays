@@ -1,0 +1,10 @@
+# Build outputs
+/build/
+*.apk
+!release/*.apk
+
+# Toolchain
+/toolchain/
+
+# Local secrets
+/local.properties

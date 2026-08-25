@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.QxPlays" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/qx_bg</item>
+        <item name="android:colorBackground">@color/qx_bg</item>
+        <item name="android:colorPrimary">@color/qx_accent</item>
+        <item name="android:colorPrimaryDark">@color/qx_bg_deep</item>
+        <item name="android:colorAccent">@color/qx_accent</item>
+        <item name="android:textColorPrimary">@color/qx_text</item>
+        <item name="android:textColorSecondary">@color/qx_text_dim</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/qx_bg_deep</item>
+        <item name="android:navigationBarColor">@color/qx_bg_deep</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:colorControlNormal">@color/qx_text_dim</item>
+        <item name="android:colorControlActivated">@color/qx_accent</item>
+        <item name="android:colorControlHighlight">#223E5C</item>
+        <item name="android:alertDialogTheme">@style/QxDialogTheme</item>
+    </style>
+
+    <style name="Theme.QxPlays.Black" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/qx_black</item>
+        <item name="android:colorBackground">@color/qx_black</item>
+        <item name="android:colorPrimary">@color/qx_accent</item>
+        <item name="android:colorPrimaryDark">@color/qx_black</item>
+        <item name="android:colorAccent">@color/qx_accent</item>
+        <item name="android:statusBarColor">@color/qx_black</item>
+        <item name="android:navigationBarColor">@color/qx_black</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="QxDialogTheme" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@color/qx_accent</item>
+        <item name="android:textColorPrimary">@color/qx_text</item>
+    </style>
+</resources>
