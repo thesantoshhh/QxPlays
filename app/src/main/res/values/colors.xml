@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="qx_bg">#0B1220</color>
+    <color name="qx_bg_deep">#070D18</color>
+    <color name="qx_surface">#131C2E</color>
+    <color name="qx_surface_2">#1B2740</color>
+    <color name="qx_line">#22304C</color>
+    <color name="qx_accent">#3E8BFF</color>
+    <color name="qx_accent_dim">#2B66C4</color>
+    <color name="qx_text">#EAF1FC</color>
+    <color name="qx_text_dim">#93A5C4</color>
+    <color name="qx_danger">#FF5C6C</color>
+    <color name="qx_ok">#38D39F</color>
+    <color name="qx_warn">#FFB547</color>
+    <color name="qx_black">#000000</color>
+</resources>
