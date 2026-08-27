@@ -14,6 +14,7 @@ if [ -n "$ANDROID_SDK_ROOT" ]; then
   ANDROID_JAR="$ANDROID_SDK_ROOT/platforms/android-35/android.jar"
   # Use system JDK
   JDK_BIN="/usr/bin"
+  # R8/D8 is included in build-tools, use it directly
   R8JAR="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/r8.jar"
   APKSIGNER_JAR="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar"
   LIB=""
@@ -53,8 +54,26 @@ echo "     compiled $(find "$OUT/classes" -name '*.class' | wc -l) classes"
 
 echo "[4/7] d8 (dex)"
 (cd "$OUT/classes" && "$JDK_BIN/jar" cf ../app.jar .)
-"$JDK_BIN/java" -Xshare:off -cp "$R8JAR" com.android.tools.r8.D8 \
-  --release --min-api 24 --lib "$ANDROID_JAR" --output "$OUT/dex" "$OUT/app.jar"
+
+# Try to find r8.jar in multiple locations
+if [ -f "$R8JAR" ]; then
+  R8_PATH="$R8JAR"
+elif [ -f "$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/r8.jar" ]; then
+  R8_PATH="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/r8.jar"
+elif command -v d8 &> /dev/null; then
+  # Use d8 command if available in PATH
+  echo "Using d8 from PATH"
+  d8 --release --min-api 24 --lib "$ANDROID_JAR" --output "$OUT/dex" "$OUT/app.jar"
+  R8_PATH="SKIP"
+else
+  echo "ERROR: Could not find r8.jar or d8 command"
+  exit 1
+fi
+
+if [ "$R8_PATH" != "SKIP" ]; then
+  "$JDK_BIN/java" -Xshare:off -cp "$R8_PATH" com.android.tools.r8.D8 \
+    --release --min-api 24 --lib "$ANDROID_JAR" --output "$OUT/dex" "$OUT/app.jar"
+fi
 
 echo "[5/7] package dex into APK"
 cp "$OUT/base.apk" "$OUT/unsigned.apk"
