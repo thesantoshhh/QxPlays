@@ -9,17 +9,40 @@ cd "$(dirname "$0")"
 # Check if running in GitHub Actions environment
 if [ -n "$ANDROID_SDK_ROOT" ]; then
   # GitHub Actions environment
+  echo "🔧 GitHub Actions environment detected"
+  echo "📁 ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
+  
   AAPT2="$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt2"
   ZIPALIGN="$ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign"
   ANDROID_JAR="$ANDROID_SDK_ROOT/platforms/android-35/android.jar"
-  # Use system JDK
   JDK_BIN="/usr/bin"
-  # R8/D8 is included in build-tools, use it directly
   R8JAR="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/r8.jar"
   APKSIGNER_JAR="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar"
   LIB=""
+  
+  # Verify critical tools exist
+  echo "✓ Verifying tools..."
+  [ -f "$AAPT2" ] && echo "  ✓ aapt2 found" || (echo "  ✗ aapt2 NOT found"; exit 1)
+  [ -f "$ANDROID_JAR" ] && echo "  ✓ android.jar found" || (echo "  ✗ android.jar NOT found"; exit 1)
+  [ -f "$ZIPALIGN" ] && echo "  ✓ zipalign found" || (echo "  ✗ zipalign NOT found"; exit 1)
+  
+  # Check for r8.jar, download if needed
+  if [ ! -f "$R8JAR" ]; then
+    echo "  ⚠ r8.jar not found, attempting download..."
+    mkdir -p "$ANDROID_SDK_ROOT/build-tools/35.0.0/lib"
+    curl -L "https://repo1.maven.org/maven2/com/android/tools/r8/8.2.47/r8-8.2.47.jar" \
+      -o "$R8JAR" 2>/dev/null || {
+      echo "  ✗ Failed to download r8.jar"
+      exit 1
+    }
+    echo "  ✓ r8.jar downloaded"
+  else
+    echo "  ✓ r8.jar found"
+  fi
+  
 else
   # Local development environment
+  echo "💻 Local development environment"
   TC=/home/user/toolchain
   JDK_BIN=$TC/jdk/bin
   ANDROID_JAR=$TC/sdk/platforms/an35/android.jar
@@ -34,8 +57,14 @@ APP=app/src/main
 OUT=build
 APK_OUT=release/QxPlays-v1.0.0.apk
 
+echo ""
+echo "🗑️  Cleaning previous builds..."
 rm -rf "$OUT"
 mkdir -p "$OUT/gen" "$OUT/classes" "$OUT/dex" release
+
+echo ""
+echo "📦 Building APK (7 steps)..."
+echo ""
 
 echo "[1/7] aapt2 compile resources"
 "$AAPT2" compile --dir "$APP/res" -o "$OUT/res.zip"
@@ -50,29 +79,18 @@ echo "[3/7] javac"
 find "$APP/java" "$OUT/gen" -name "*.java" > "$OUT/sources.txt"
 "$JDK_BIN/javac" --release 8 -nowarn -encoding UTF-8 \
   -classpath "$ANDROID_JAR" -d "$OUT/classes" @"$OUT/sources.txt"
-echo "     compiled $(find "$OUT/classes" -name '*.class' | wc -l) classes"
+CLASSES_COUNT=$(find "$OUT/classes" -name '*.class' | wc -l)
+echo "     ✓ compiled $CLASSES_COUNT classes"
 
 echo "[4/7] d8 (dex)"
 (cd "$OUT/classes" && "$JDK_BIN/jar" cf ../app.jar .)
 
-# Try to find r8.jar in multiple locations
 if [ -f "$R8JAR" ]; then
-  R8_PATH="$R8JAR"
-elif [ -f "$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/r8.jar" ]; then
-  R8_PATH="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/r8.jar"
-elif command -v d8 &> /dev/null; then
-  # Use d8 command if available in PATH
-  echo "Using d8 from PATH"
-  d8 --release --min-api 24 --lib "$ANDROID_JAR" --output "$OUT/dex" "$OUT/app.jar"
-  R8_PATH="SKIP"
-else
-  echo "ERROR: Could not find r8.jar or d8 command"
-  exit 1
-fi
-
-if [ "$R8_PATH" != "SKIP" ]; then
-  "$JDK_BIN/java" -Xshare:off -cp "$R8_PATH" com.android.tools.r8.D8 \
+  "$JDK_BIN/java" -Xshare:off -cp "$R8JAR" com.android.tools.r8.D8 \
     --release --min-api 24 --lib "$ANDROID_JAR" --output "$OUT/dex" "$OUT/app.jar"
+else
+  echo "     ✗ r8.jar not found at: $R8JAR"
+  exit 1
 fi
 
 echo "[5/7] package dex into APK"
@@ -99,10 +117,13 @@ echo "[7/7] sign (apksigner, v1+v2)"
   --out "$APK_OUT" "$OUT/aligned.apk"
 
 echo ""
-echo "================ VERIFY ================"
+echo "✅ ================ VERIFY ================"
 "$JDK_BIN/java" -Xshare:off -jar "$APKSIGNER_JAR" verify --print-certs "$APK_OUT" | sed -n '1,6p'
 echo ""
+echo "📋 APK Details:"
 "$AAPT2" dump badging "$APK_OUT" | grep -E "package:|application-label:|sdkVersion|targetSdkVersion|uses-permission" | head -24
 echo ""
-echo "================ DONE ================"
-ls -la "$APK_OUT"
+echo "🎉 ================ DONE ================"
+ls -lh "$APK_OUT"
+echo ""
+echo "✨ APK successfully built: $APK_OUT"
