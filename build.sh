@@ -6,14 +6,28 @@
 set -e
 cd "$(dirname "$0")"
 
-TC=/home/user/toolchain
-JDK_BIN=$TC/jdk/bin
-ANDROID_JAR=$TC/sdk/platforms/an35/android.jar
-AAPT2=$TC/aapt2-npm
-ZIPALIGN=$TC/zipalign
-R8JAR=$TC/r8.jar
-APKSIGNER_JAR=$TC/apksigner.jar
-LIB=$TC/libc++.so
+# Check if running in GitHub Actions environment
+if [ -n "$ANDROID_SDK_ROOT" ]; then
+  # GitHub Actions environment
+  AAPT2="$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt2"
+  ZIPALIGN="$ANDROID_SDK_ROOT/build-tools/35.0.0/zipalign"
+  ANDROID_JAR="$ANDROID_SDK_ROOT/platforms/android-35/android.jar"
+  # Use system JDK
+  JDK_BIN="/usr/bin"
+  R8JAR="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/r8.jar"
+  APKSIGNER_JAR="$ANDROID_SDK_ROOT/build-tools/35.0.0/lib/apksigner.jar"
+  LIB=""
+else
+  # Local development environment
+  TC=/home/user/toolchain
+  JDK_BIN=$TC/jdk/bin
+  ANDROID_JAR=$TC/sdk/platforms/an35/android.jar
+  AAPT2=$TC/aapt2-npm
+  ZIPALIGN=$TC/zipalign
+  R8JAR=$TC/r8.jar
+  APKSIGNER_JAR=$TC/apksigner.jar
+  LIB=$TC/libc++.so
+fi
 
 APP=app/src/main
 OUT=build
@@ -53,7 +67,11 @@ z.close()
 PY
 
 echo "[6/7] zipalign"
-env LD_LIBRARY_PATH="$TC" "$ZIPALIGN" -f -p 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
+if [ -n "$LIB" ]; then
+  env LD_LIBRARY_PATH="$TC" "$ZIPALIGN" -f -p 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
+else
+  "$ZIPALIGN" -f -p 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
+fi
 
 echo "[7/7] sign (apksigner, v1+v2)"
 "$JDK_BIN/java" -Xshare:off -jar "$APKSIGNER_JAR" sign \
